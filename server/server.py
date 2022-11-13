@@ -666,6 +666,7 @@ def tcp_listener(server_ip, server_port):
     server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     server_socket.bind((server_ip, int(server_port)))
     server_socket.listen(20)
+    print("<<<  Server is ready  >>>")
     logger.info(
         f'Start the TCP service, listing {server_port} on IP {"All available" if server_ip == "" else server_ip}')
     while True:
@@ -677,7 +678,6 @@ def tcp_listener(server_ip, server_port):
             th.daemon = True
             # bug6: th.start()
             th.start()
-            print("<<<  Server is ready  >>>")
 
         except Exception as ex:
             logger.error(f'{str(ex)}@{ex.__traceback__.tb_lineno}')
