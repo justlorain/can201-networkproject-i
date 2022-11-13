@@ -1,3 +1,4 @@
+import hashlib  # bug1: import hashlib
 from socket import *
 import json
 import os
@@ -17,7 +18,8 @@ import shutil
 MAX_PACKET_SIZE = 20480
 
 # Const Value
-OP_SAVE, OP_DELETE, OP_GET, OP_UPLOAD, OP_DOWNLOAD, OP_BYE, OP_LOGIN, OP_ERROR = 'SAVE', 'DELETE', 'GET', 'UPLOAD', 'DOWNLOAD', 'BYE', 'LOGIN', "ERROR"
+# bug?: "ERROR" -> 'ERROR'
+OP_SAVE, OP_DELETE, OP_GET, OP_UPLOAD, OP_DOWNLOAD, OP_BYE, OP_LOGIN, OP_ERROR = 'SAVE', 'DELETE', 'GET', 'UPLOAD', 'DOWNLOAD', 'BYE', 'LOGIN', 'ERROR'
 TYPE_FILE, TYPE_DATA, TYPE_AUTH, DIR_EARTH = 'FILE', 'DATA', 'AUTH', 'EARTH'
 FIELD_OPERATION, FIELD_DIRECTION, FIELD_TYPE, FIELD_USERNAME, FIELD_PASSWORD, FIELD_TOKEN = 'operation', 'direction', 'type', 'username', 'password', 'token'
 FIELD_KEY, FIELD_SIZE, FIELD_TOTAL_BLOCK, FIELD_MD5, FIELD_BLOCK_SIZE = 'key', 'size', 'total_block', 'md5', 'block_size'
@@ -96,8 +98,9 @@ def _argparse():
     parse = argparse.ArgumentParser()
     parse.add_argument("--ip", default='', action='store', required=False, dest="ip",
                        help="The IP address bind to the server. Default bind all IP.")
-    parse.add_argument("--port", default='1379', action='store', required=False, dest="port",
-                       help="The port that server listen on. Default is 1379.")
+    # port -> 8080
+    parse.add_argument("--port", default='8080', action='store', required=False, dest="port",
+                       help="The port that server listen on. Default is 8080.")
     return parse.parse_args()
 
 
@@ -642,7 +645,8 @@ def step_service(connection_socket, addr):
             continue
 
         if request_type == TYPE_FILE:
-            data_process(username, request_operation, json_data, bin_data, connection_socket)
+            # bug5: data_process -> file_process
+            file_process(username, request_operation, json_data, bin_data, connection_socket)
             continue
 
     connection_socket.close()
@@ -657,7 +661,8 @@ def tcp_listener(server_ip, server_port):
     :return: None
     """
     global logger
-    server_socket = socket(AF_INET, SOCK_DGRAM)
+    # bug4: SOCK_DGRAM -> SOCK_STREAM
+    server_socket = socket(AF_INET, SOCK_STREAM)
     server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     server_socket.bind((server_ip, int(server_port)))
     server_socket.listen(20)
@@ -667,7 +672,8 @@ def tcp_listener(server_ip, server_port):
         try:
             connection_socket, addr = server_socket.accept()
             logger.info(f'--> New connection from {addr[0]} on {addr[1]}')
-            th = Thread(target=STEP_service, args=(connection_socket, addr))
+            # bug3: STEP -> step
+            th = Thread(target=step_service, args=(connection_socket, addr))
             th.daemon = True
 
         except Exception as ex:
@@ -688,4 +694,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main
+    # bug2: main -> main()
+    main()
