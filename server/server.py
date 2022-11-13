@@ -675,6 +675,9 @@ def tcp_listener(server_ip, server_port):
             # bug3: STEP -> step
             th = Thread(target=step_service, args=(connection_socket, addr))
             th.daemon = True
+            # bug6: th.start()
+            th.start()
+            print("<<<  Server is ready  >>>")
 
         except Exception as ex:
             logger.error(f'{str(ex)}@{ex.__traceback__.tb_lineno}')
