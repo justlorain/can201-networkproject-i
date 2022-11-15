@@ -420,12 +420,14 @@ def file_process(username, request_operation, json_data, bin_data, connection_so
         if block_index >= total_block:
             logger.error(f'<-- The "block_index" exceed the max index.')
             connection_socket.send(
-                make_response_packet(OP_UPLOAD, 410, TYPE_FILE, f'The "block_index" exceed the max index.', {}))
+                # bug??: 410 -> 405
+                make_response_packet(OP_UPLOAD, 405, TYPE_FILE, f'The "block_index" exceed the max index.', {}))
             return
         if block_index < 0:
             logger.error(f'<-- The "block_index" should >= 0.')
             connection_socket.send(
-                make_response_packet(OP_UPLOAD, 410, TYPE_FILE, f'The "block_index" should >= 0.', {}))
+                # bug??: 410 -> 406
+                make_response_packet(OP_UPLOAD, 406, TYPE_FILE, f'The "block_index" should >= 0.', {}))
             return
         if block_index == total_block - 1 and len(bin_data) != file_size - block_size * block_index:
             logger.error(f'<-- The "block_size" is wrong.')
