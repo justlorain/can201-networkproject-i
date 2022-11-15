@@ -29,8 +29,6 @@ FIELD_OPERATION, FIELD_DIRECTION, FIELD_TYPE, FIELD_USERNAME, FIELD_PASSWORD, FI
 FIELD_KEY, FIELD_SIZE, FIELD_TOTAL_BLOCK, FIELD_MD5, FIELD_BLOCK_SIZE = 'key', 'size', 'total_block', 'md5', 'block_size'
 FIELD_STATUS, FIELD_STATUS_MSG, FIELD_BLOCK_INDEX = 'status', 'status_msg', 'block_index'
 
-logger = logging.getLogger('')
-
 
 def parse_cmd_args():
     parser = argparse.ArgumentParser()
@@ -106,13 +104,13 @@ def do_md5(password):
 
 
 def do_request(host, port, id, file_path):
-    # 建联
     cliSocket = socket(AF_INET, SOCK_STREAM)
     cliSocket.connect((host, port))
 
     # [LOGIN]
     login_json = {
-        FIELD_USERNAME: "114514",  # TODO: use id
+        # TODO: use id
+        FIELD_USERNAME: "114514",
         FIELD_PASSWORD: do_md5(id)
     }
     cliSocket.send(build_request(TYPE_AUTH, OP_LOGIN, login_json))
@@ -123,9 +121,11 @@ def do_request(host, port, id, file_path):
 
     if json_data[FIELD_STATUS] == 200:
         token = json_data[FIELD_TOKEN]
-        logger.info("Token : {%s}" % token)
+        print("Token : {%s}" % token)
 
     # [SAVE]
+    # TODO: use file_path
+    file_path = "./cli-file/test.png"
     file_name = file_path.split('/')[-1]
     save_json = {
         FIELD_KEY: file_name,
@@ -137,15 +137,16 @@ def do_request(host, port, id, file_path):
     json_data, bin_data = do_receive(cliSocket)
 
     # [UPLOAD]
-    # TODO: use file_path
-    file = open("./test.png", 'rb').read()
+    file = open(file_path, 'rb').read()
     file_md5 = hashlib.md5(file)
 
     block_index = 0
     total_block = json_data[FIELD_TOTAL_BLOCK]
     block_size = json_data[FIELD_BLOCK_SIZE]
 
-    for i in tqdm(range(total_block)):
+    # TODO: fix bug
+    i = 0
+    while i < total_block:
         upload_json = {
             FIELD_KEY: file_name,
             FIELD_BLOCK_INDEX: block_index,
@@ -155,14 +156,28 @@ def do_request(host, port, id, file_path):
         cliSocket.send(build_request(TYPE_FILE, OP_UPLOAD, upload_json, content))
         block_index = block_index + 1
         json_data, bin_data = do_receive(cliSocket)
+        i = i + 1
 
+    # for i in tqdm(range(total_block)):
+    #     upload_json = {
+    #         FIELD_KEY: file_name,
+    #         FIELD_BLOCK_INDEX: block_index,
+    #         FIELD_TOKEN: token,
+    #     }
+    #     content = file[block_size * block_index: block_size * (block_index + 1)]
+    #     cliSocket.send(build_request(TYPE_FILE, OP_UPLOAD, upload_json, content))
+    #     block_index = block_index + 1
+    #     json_data, bin_data = do_receive(cliSocket)
+
+    # TODO: md5校验失败
     if file_md5 == str(json_data[FIELD_MD5]):
-        logger.info("upload success")
+        print("upload success")
     else:
-        logger.info("upload failed")
+        print("upload failed")
 
 
 def main():
+    print("<<<  client is ready  >>>")
     parser = parse_cmd_args()
     isConfirm = input("Do you confirm that you want to send the file: [y/N]")
     if isConfirm == 'y':
@@ -170,7 +185,8 @@ def main():
     elif isConfirm == 'N':
         sys.exit()
     else:
-        print("Unvalidated Input, please restart.")
+        print("Unvalidated Input, please confirm again.")
+        main()
 
 
 if __name__ == '__main__':
