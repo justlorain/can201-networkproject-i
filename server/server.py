@@ -78,7 +78,7 @@ def set_logger(logger_name):
     logger_file_name = get_time_based_filename('log')
     os.makedirs(f'log/{logger_name}', exist_ok=True)
 
-    fh = TimedRotatingFileHandler(filename=f'log/{logger_name}/log', when='D', interval=1, backupCount=1)
+    fh = TimedRotatingFileHandler(filename=f'log/{logger_name}/log.log', when='D', interval=1, backupCount=1)
     fh.setFormatter(formatter)
 
     fh.setLevel(logging.INFO)
@@ -99,8 +99,8 @@ def _argparse():
     parse.add_argument("--ip", default='', action='store', required=False, dest="ip",
                        help="The IP address bind to the server. Default bind all IP.")
     # port -> 8080
-    parse.add_argument("--port", default='8080', action='store', required=False, dest="port",
-                       help="The port that server listen on. Default is 8080.")
+    parse.add_argument("--port", default='1379', action='store', required=False, dest="port",
+                       help="The port that server listen on. Default is 1379.")
     return parse.parse_args()
 
 
@@ -340,8 +340,8 @@ def file_process(username, request_operation, json_data, bin_data, connection_so
 
             fid = open(join('tmp', username, key + '.log'), 'w')
             fid.close()
-
-            logger.error(f'<-- Upload plan: key {key}, total block number {total_block}, block size {block_size}.')
+            # bug?? error -> info
+            logger.info(f'<-- Upload plan: key {key}, total block number {total_block}, block size {block_size}.')
             connection_socket.send(
                 make_response_packet(OP_SAVE, 200, TYPE_FILE, f'This is the upload plan.', rval))
         except Exception as ex:
@@ -663,12 +663,12 @@ def tcp_listener(server_ip, server_port):
     :return: None
     """
     global logger
-    # bug4: SOCK_DGRAM -> SOCK_STREAM
+    # bug4: SOCK_DGRAM(for UDP) -> SOCK_STREAM(for TCP)
     server_socket = socket(AF_INET, SOCK_STREAM)
     server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
     server_socket.bind((server_ip, int(server_port)))
     server_socket.listen(20)
-    print("<<<  server is ready  >>>")
+    logger.info("<<<  Server is ready  >>>")
     logger.info(
         f'Start the TCP service, listing {server_port} on IP {"All available" if server_ip == "" else server_ip}')
     while True:

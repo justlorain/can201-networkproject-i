@@ -33,7 +33,7 @@ def parse_cmd_args():
     # args defined form terminal
     parser = argparse.ArgumentParser()
     # server ip
-    parser.add_argument("-server_ip", default="127.0.0.1", action="store", required=False, dest="server_ip",
+    parser.add_argument("-server_ip", default="192.168.0.192", action="store", required=False, dest="server_ip",
                         help="The IP address bind to the server. Default bind all IP.")
     # server port
     parser.add_argument("-port", default=1379, action="store", required=False, type=int, dest="port",
@@ -44,8 +44,8 @@ def parse_cmd_args():
     parser.add_argument("-f", default=" ", action="store", required=False, dest="file",
                         help="File path. Default is empty (no file will be uploaded).")
     # num of thread
-    parser.add_argument("-num", default="2", action="store", required=False, dest="thread_num",
-                        help="The number of the threads. Default is 2")
+    parser.add_argument("-num", default="1", action="store", required=False, dest="thread_num",
+                        help="The number of the threads. Default is 1 (no multi-thread)")
     return parser.parse_args()
 
 
@@ -220,7 +220,7 @@ def thread_send_block(upload_json, cliSocket, num_each_thread, file, block_size,
             lock_recv.acquire()  # LOCK ON
             json_data, bin_data = do_receive(cliSocket)
             lock_recv.release()  # LOCK OFF
-            check_upload_error(json_data, cliSocket, upload_json, content)
+            check_upload_error(json_data, cliSocket)
 
     # normal part
     for block_index in tqdm(range(num_each_thread), desc=f"Update progress for thread {thread_num + 1}", unit='block'):
@@ -233,10 +233,10 @@ def thread_send_block(upload_json, cliSocket, num_each_thread, file, block_size,
         lock_recv.acquire()  # LOCK ON
         json_data, bin_data = do_receive(cliSocket)
         lock_recv.release()  # LOCK OFF
-        check_upload_error(json_data, cliSocket, upload_json, content)
+        check_upload_error(json_data, cliSocket)
 
 
-def check_upload_error(json_data,  cliSocket, upload_json, content):
+def check_upload_error(json_data,  cliSocket):
     """
     Detect and handle the error from server when uploading
     :param json_data:
@@ -266,7 +266,9 @@ def check_upload_error(json_data,  cliSocket, upload_json, content):
                 f"<-- Block error detected, need to re-send the WHOLE FILE"
                 f"(This Error may occur because server does not accept multi-thread well). ")
             # TODO report: 测试中发现网络问题不能单个block重传，只能所有一起重传
-            # RESEND the whole file
+            # # RESEND the whole file
+            # parser = parse_cmd_args()
+            # do_request(parser.server_ip, parser.port, parser.id, parser.file, parser.thread_num)
             # check_upload_error(json_data, cliSocket, upload_json, content)
         cliSocket.close()
         print("Mission fail, client close.")
@@ -318,12 +320,12 @@ def do_save(file_path, cliSocket, token):
     :param token:
     :return:
     """
-    # Check the size of file <= 1MB
-    if os.path.getsize(file_path) >= 1024 * 1000:
-        logger.error(f"ERROR, the size of the file must less than 1MB, but client got {os.path.getsize(file_path)}")
-        cliSocket.close()
-        print("Mission fail, client close.")
-        sys.exit()
+    # # Check the size of file <= 1MB
+    # if os.path.getsize(file_path) >= 1024 * 1000:
+    #     logger.error(f"ERROR, the size of the file must less than 1MB, but client got {os.path.getsize(file_path)}")
+    #     cliSocket.close()
+    #     print("Mission fail, client close.")
+    #     sys.exit()
 
     file_name = file_path.split('/')[-1]
     save_json = {
@@ -406,11 +408,11 @@ def do_upload(file_path, file_name, json_data, thread_num, token, cliSocket):
         f'block>>>')
     os.makedirs("./record", exist_ok=True)
 
-    # # generate record
-    # with open("record/record_thread2.txt", 'a') as fid:
-    #     size = json_data[FIELD_KEY].split(".png")[0]
-    #     content = f"{size},{round(update_time * 1000)},{round(update_avg_time * 1000)}"
-    #     fid.write(content + '\n')
+    # generate record
+    with open("record/record_thread1.txt", 'a') as fid:
+        size = json_data[FIELD_KEY].split(".png")[0]
+        content = f"{size},{round(update_time * 1000)},{round(update_avg_time * 1000)}"
+        fid.write(content + '\n')
     return file_md5
 
 
@@ -454,14 +456,14 @@ def main():
     logger = set_logger('STEP')
     parser = parse_cmd_args()
     # generate record
-    # root = os.listdir('./')
-    # for file in root:
-    #     if file != 'client.py' and file != 'log' and file != 'record':
-    #         file = os.path.join('./', file)
-    #         do_request(parser.server_ip, parser.port, parser.id, file, 2)
-    #     else:
-    #         continue
-    do_request(parser.server_ip, parser.port, parser.id, parser.file, parser.thread_num)
+    root = os.listdir('./')
+    for file in root:
+        if file != 'client.py' and file != 'log' and file != 'record':
+            file = os.path.join('./', file)
+            do_request(parser.server_ip, parser.port, parser.id, file, 1)
+        else:
+            continue
+    # do_request(parser.server_ip, parser.port, parser.id, parser.file, parser.thread_num)
 
 
 if __name__ == '__main__':
